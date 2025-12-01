@@ -1,0 +1,19 @@
+{
+  "flights": [
+    { "id": 1, "from": "Mumbai", "to": "Dubai", "co2_per_person": 160 },
+    { "id": 2, "from": "Mumbai", "to": "Delhi", "co2_per_person": 95 },
+    { "id": 3, "from": "Delhi", "to": "London", "co2_per_person": 270 },
+    { "id": 4, "from": "Goa", "to": "Bangkok", "co2_per_person": 210 },
+    { "id": 5, "from": "Chennai", "to": "Singapore", "co2_per_person": 185 },
+    { "id": 6, "from": "Bengaluru", "to": "New York", "co2_per_person": 340 },
+    { "id": 7, "from": "Hyderabad", "to": "Kuala Lumpur", "co2_per_person": 175 },
+    { "id": 8, "from": "Kolkata", "to": "Doha", "co2_per_person": 155 },
+    { "id": 9, "from": "Delhi", "to": "Paris", "co2_per_person": 260 },
+    { "id": 10, "from": "Ahmedabad", "to": "Dubai", "co2_per_person": 165 },
+    { "id": 11, "from": "Pune", "to": "Singapore", "co2_per_person": 190 },
+    { "id": 12, "from": "Mumbai", "to": "New York", "co2_per_person": 350 },
+    { "id": 13, "from": "Goa", "to": "London", "co2_per_person": 280 },
+    { "id": 14, "from": "Hyderabad", "to": "Doha", "co2_per_person": 150 },
+    { "id": 15, "from": "Delhi", "to": "Toronto", "co2_per_person": 300 }
+  ]
+}
