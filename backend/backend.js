@@ -6,6 +6,11 @@ const { getEcoTips } = require("./tips");
 
 app.use(express.json());
 
+// API route: get all flights list
+app.get("/flights", (req, res) => {
+  res.json(flightsDB);
+});
+
 // API route: calculate CO₂ for a flight
 app.post("/calculate", (req, res) => {
   const { from, to, passengers } = req.body;
