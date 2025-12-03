@@ -1075,6 +1075,63 @@
                 </div>
             </div>
         </div>
+
+        <!-- Backend Insights Section (additive) -->
+        <div class="search-section" id="backendInsightsSection" style="margin-top: 2rem;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Backend Flight Insights</h2>
+                <p style="color: var(--text-tertiary); font-size: 0.9rem;">
+                    These insights come from the live backend service. Frontend behavior remains unchanged if the backend is offline.
+                </p>
+            </div>
+
+            <div class="search-form" style="margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label>Backend Routes</label>
+                    <button type="button" class="search-btn" id="load-backend-routes-btn">Load Backend Routes</button>
+                </div>
+            </div>
+
+            <div id="backendRoutesContainer" style="display: none; margin-bottom: 2rem;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: 0.5rem;">From</th>
+                            <th style="text-align: left; padding: 0.5rem;">To</th>
+                            <th style="text-align: left; padding: 0.5rem;">CO₂ / person (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="backendRoutesBody"></tbody>
+                </table>
+            </div>
+
+            <div class="search-form" id="backendCo2Form">
+                <div class="form-group">
+                    <label for="backendFrom">From (backend)</label>
+                    <select id="backendFrom">
+                        <option value="">Select origin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="backendTo">To (backend)</label>
+                    <select id="backendTo">
+                        <option value="">Select destination</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="backendPassengers">Passengers</label>
+                    <input type="number" id="backendPassengers" min="1" value="1">
+                </div>
+                <button type="button" class="search-btn" id="backendCalculateBtn">Calculate CO₂ via Backend</button>
+            </div>
+
+            <div id="backendCo2ResultBox" style="display: none; margin-top: 1.5rem; padding: 1rem; border-radius: 12px; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--border);">
+                <h3 style="margin-bottom: 0.5rem;">Backend CO₂ Result</h3>
+                <p id="backendCo2Summary" style="margin-bottom: 0.5rem;"></p>
+                <p id="backendCo2Category" style="margin-bottom: 0.5rem;"></p>
+                <ul id="backendCo2Tips" style="margin-left: 1.25rem; margin-top: 0.5rem;"></ul>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript for Search and Mobile Menu -->
@@ -1521,6 +1578,175 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderFlights(currentFlights);
         });
+
+        // --- Backend integration (additive, does not change existing functions) ---
+        const BACKEND_BASE_URL = "http://localhost:5000";
+
+        async function loadBackendRoutes() {
+            const container = document.getElementById('backendRoutesContainer');
+            const tbody = document.getElementById('backendRoutesBody');
+            if (!container || !tbody) return;
+
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(`${BACKEND_BASE_URL}/flights`);
+                if (!response.ok) {
+                    throw new Error(`Backend returned status ${response.status}`);
+                }
+
+                const data = await response.json();
+                const flights = Array.isArray(data.flights) ? data.flights : [];
+
+                flights.forEach((flight) => {
+                    const row = document.createElement('tr');
+                    const fromCell = document.createElement('td');
+                    const toCell = document.createElement('td');
+                    const co2Cell = document.createElement('td');
+
+                    fromCell.style.padding = '0.5rem';
+                    toCell.style.padding = '0.5rem';
+                    co2Cell.style.padding = '0.5rem';
+
+                    fromCell.textContent = flight.from;
+                    toCell.textContent = flight.to;
+                    co2Cell.textContent = flight.co2_per_person;
+
+                    row.appendChild(fromCell);
+                    row.appendChild(toCell);
+                    row.appendChild(co2Cell);
+                    tbody.appendChild(row);
+                });
+
+                container.style.display = flights.length > 0 ? 'block' : 'none';
+
+            } catch (error) {
+                console.error('Error loading backend routes:', error);
+                container.style.display = 'none';
+            }
+        }
+
+        async function calculateBackendCo2() {
+            const fromSelect = document.getElementById('backendFrom');
+            const toSelect = document.getElementById('backendTo');
+            const passengersInput = document.getElementById('backendPassengers');
+            const resultBox = document.getElementById('backendCo2ResultBox');
+            const summaryEl = document.getElementById('backendCo2Summary');
+            const categoryEl = document.getElementById('backendCo2Category');
+            const tipsList = document.getElementById('backendCo2Tips');
+
+            if (!fromSelect || !toSelect || !passengersInput || !resultBox || !summaryEl || !categoryEl || !tipsList) {
+                return;
+            }
+
+            const from = fromSelect.value;
+            const to = toSelect.value;
+            const passengers = parseInt(passengersInput.value, 10) || 1;
+
+            if (!from || !to) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_BASE_URL}/calculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ from, to, passengers })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Backend returned status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    summaryEl.textContent = data.error;
+                    categoryEl.textContent = '';
+                    tipsList.innerHTML = '';
+                    resultBox.style.display = 'block';
+                    return;
+                }
+
+                summaryEl.textContent = `Route ${data.from} → ${data.to} for ${data.passengers} passenger(s) emits approximately ${data.totalCO2} kg CO₂.`;
+                categoryEl.textContent = `Category: ${data.category}`;
+
+                tipsList.innerHTML = '';
+                if (Array.isArray(data.tips)) {
+                    data.tips.forEach((tip) => {
+                        const li = document.createElement('li');
+                        li.textContent = tip;
+                        tipsList.appendChild(li);
+                    });
+                }
+
+                resultBox.style.display = 'block';
+            } catch (error) {
+                console.error('Error calling backend CO₂ calculator:', error);
+            }
+        }
+
+        async function initializeBackendSelectors() {
+            const fromSelect = document.getElementById('backendFrom');
+            const toSelect = document.getElementById('backendTo');
+            if (!fromSelect || !toSelect) return;
+
+            try {
+                const response = await fetch(`${BACKEND_BASE_URL}/flights`);
+                if (!response.ok) {
+                    throw new Error(`Backend returned status ${response.status}`);
+                }
+                const data = await response.json();
+                const flights = Array.isArray(data.flights) ? data.flights : [];
+
+                const fromSet = new Set();
+                const toSet = new Set();
+
+                flights.forEach((flight) => {
+                    fromSet.add(flight.from);
+                    toSet.add(flight.to);
+                });
+
+                fromSet.forEach((value) => {
+                    const opt = document.createElement('option');
+                    opt.value = value;
+                    opt.textContent = value;
+                    fromSelect.appendChild(opt);
+                });
+
+                toSet.forEach((value) => {
+                    const opt = document.createElement('option');
+                    opt.value = value;
+                    opt.textContent = value;
+                    toSelect.appendChild(opt);
+                });
+
+            } catch (error) {
+                console.warn('Backend not available for selector initialization:', error);
+            }
+        }
+
+        function setupBackendIntegration() {
+            const loadRoutesBtn = document.getElementById('load-backend-routes-btn');
+            const calculateBtn = document.getElementById('backendCalculateBtn');
+
+            if (loadRoutesBtn) {
+                loadRoutesBtn.addEventListener('click', loadBackendRoutes);
+            }
+
+            if (calculateBtn) {
+                calculateBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    calculateBackendCo2();
+                });
+            }
+
+            initializeBackendSelectors();
+        }
+
+        document.addEventListener('DOMContentLoaded', setupBackendIntegration);
     </script>
 </body>
 </html>

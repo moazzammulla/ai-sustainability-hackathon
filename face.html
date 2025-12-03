@@ -360,6 +360,11 @@
             text-align: center;
         }
 
+        /* AI Eco Metrics panel extends existing result-card styles */
+        #aiEcoMetricsCard {
+            text-align: left;
+        }
+
         .result-card.success {
             background: linear-gradient(135deg, rgba(6, 185, 129, 0.1) 0%, rgba(6, 185, 129, 0.05) 100%);
             border-color: rgba(6, 185, 129, 0.3);
@@ -838,22 +843,29 @@
                     <div class="result-value" id="resultFaces">0</div>
                 </div>
                 <div class="result-card">
-                    <div class="result-label">Confidence Level</div>
+                    <div class="result-label">Average Confidence</div>
                     <div class="result-value" id="resultConfidence">0%</div>
                 </div>
                 <div class="result-card">
                     <div class="result-label">Detection Quality</div>
-                    <div class="result-value" id="resultQuality">N/A</div>
+                    <div class="result-value" id="resultQuality">-</div>
+                </div>
+                <div class="result-card" id="aiEcoMetricsCard">
+                    <div class="result-label">AI Eco Metrics (Backend)</div>
+                    <div class="result-value" id="aiDensityLabel">-</div>
+                    <p id="aiCo2Saved" style="margin-top: 0.5rem;"></p>
+                    <p id="aiWalkTime" style="margin-top: 0.25rem;"></p>
+                    <p id="aiEnergySaved" style="margin-top: 0.25rem;"></p>
                 </div>
             </div>
 
-            <!-- Verification Status -->
             <div class="verification-status" id="verificationStatus">
                 <div class="verification-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="verification-title">Face Verified Successfully</div>
-                <div class="verification-message" id="verificationMessage">
+                <div class="verification-title">Passenger Verified</div>
+                <p id="verificationMessage" class="verification-message">Your face has been detected with high confidence. You are cleared in the eco passenger flow system.</p>
+            </div>
                     Your face has been detected and verified. You are now identified in the system.
                 </div>
             </div>

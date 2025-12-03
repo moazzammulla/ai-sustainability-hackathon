@@ -1,6 +1,8 @@
 // Face Detection Module with MediaPipe
 import { FaceDetection } from "@mediapipe/face_detection"
 
+const BACKEND_BASE_URL = "http://localhost:5000"
+
 class FaceDetectionSystem {
   constructor() {
     this.webcamElement = document.getElementById("webcam")
@@ -368,6 +370,71 @@ class FaceDetectionSystem {
   }
 }
 
+async function sendMetricsToBackend(numFaces) {
+  if (!Number.isFinite(numFaces) || numFaces <= 0) return
+
+  const densityLabelEl = document.getElementById("aiDensityLabel")
+  const co2SavedEl = document.getElementById("aiCo2Saved")
+  const walkTimeEl = document.getElementById("aiWalkTime")
+  const energySavedEl = document.getElementById("aiEnergySaved")
+
+  try {
+    const response = await fetch(`${BACKEND_BASE_URL}/ai/metrics`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ numFaces }),
+    })
+
+    if (!response.ok) {
+      console.error("AI metrics backend error", response.status)
+      return
+    }
+
+    const data = await response.json()
+
+    if (densityLabelEl && typeof data.density_label === "string") {
+      densityLabelEl.textContent = data.density_label
+    }
+
+    if (co2SavedEl && typeof data.co2_saved_readable === "string") {
+      co2SavedEl.textContent = `CO₂ Saved (estimated): ${data.co2_saved_readable}`
+    }
+
+    if (walkTimeEl && typeof data.walk_time === "string") {
+      walkTimeEl.textContent = `Equivalent walking time: ${data.walk_time}`
+    }
+
+    if (energySavedEl && typeof data.energy_saved === "number") {
+      energySavedEl.textContent = `Estimated energy saved: ${data.energy_saved}`
+    }
+  } catch (error) {
+    console.error("Failed to fetch AI metrics from backend", error)
+  }
+}
+
+function setupAIMetricsObserver() {
+  const faceCountEl = document.getElementById("faceCount")
+  if (!faceCountEl) return
+
+  let lastValue = null
+
+  const observer = new MutationObserver(() => {
+    const value = Number.parseInt(faceCountEl.textContent || "0", 10)
+    if (!Number.isFinite(value) || value <= 0) return
+    if (value === lastValue) return
+    lastValue = value
+    sendMetricsToBackend(value)
+  })
+
+  observer.observe(faceCountEl, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  })
+}
+
 // Initialize system on page load
 document.addEventListener("DOMContentLoaded", () => {
   new FaceDetectionSystem()
@@ -382,3 +449,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })
 })
+
+document.addEventListener("DOMContentLoaded", setupAIMetricsObserver)
