@@ -36,6 +36,7 @@ class FaceDetectionSystem {
     this.totalScans = 0
     this.currentFaceCount = 0
     this.uploadedImage = null
+    this.lastMetricsSend = null
 
     this.init()
   }
@@ -121,7 +122,7 @@ class FaceDetectionSystem {
     detect()
   }
 
-  onFaceDetectionResults(results) {
+  async onFaceDetectionResults(results) {
     this.canvasElement.width = this.webcamElement.videoWidth
     this.canvasElement.height = this.webcamElement.videoHeight
 
@@ -132,12 +133,43 @@ class FaceDetectionSystem {
     if (results.detections.length > 0) {
       this.currentFaceCount = results.detections.length
       this.drawFaceDetections(results.detections)
+      const confidence = (results.detections[0].score[0] * 100).toFixed(2)
       this.addLog(
-        `Detected ${this.currentFaceCount} face(s) - Confidence: ${(results.detections[0].score[0] * 100).toFixed(2)}%`,
+        `Detected ${this.currentFaceCount} face(s) - Confidence: ${confidence}%`,
       )
 
       // Update stats
       this.faceCount.textContent = this.currentFaceCount
+
+      // Send metrics to backend (throttled to avoid too many requests)
+      if (!this.lastMetricsSend || Date.now() - this.lastMetricsSend > 2000) {
+        try {
+          const API_BASE_URL = window.location.origin
+          const metricsResponse = await fetch(`${API_BASE_URL}/ai/metrics`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              face_count: this.currentFaceCount,
+              confidence: parseFloat(confidence),
+              quality: this.getQualityLabel(confidence),
+              timestamp: new Date().toISOString(),
+              source: 'webcam',
+              detection_data: results.detections.map(detection => ({
+                score: detection.score[0],
+                bounding_box: detection.locationData?.relative_bounding_box
+              }))
+            })
+          })
+
+          if (metricsResponse.ok) {
+            this.lastMetricsSend = Date.now()
+          }
+        } catch (error) {
+          console.error('Error sending webcam metrics to backend:', error)
+        }
+      }
     } else {
       this.currentFaceCount = 0
       this.faceCount.textContent = "0"
@@ -268,7 +300,7 @@ class FaceDetectionSystem {
     this.detectBtn.disabled = false
   }
 
-  displayDetectionResults(results) {
+  async displayDetectionResults(results) {
     const faceCount = results.detections.length
     const confidence = faceCount > 0 ? (results.detections[0].score[0] * 100).toFixed(2) : 0
     const quality = this.getQualityLabel(confidence)
@@ -280,6 +312,37 @@ class FaceDetectionSystem {
 
     // Show results section
     this.resultsSection.classList.add("active")
+
+    // Send metrics to backend
+    try {
+      const API_BASE_URL = window.location.origin
+      const metricsResponse = await fetch(`${API_BASE_URL}/ai/metrics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          face_count: faceCount,
+          confidence: parseFloat(confidence),
+          quality: quality,
+          timestamp: new Date().toISOString(),
+          detection_data: results.detections.map(detection => ({
+            score: detection.score[0],
+            bounding_box: detection.locationData?.relative_bounding_box
+          }))
+        })
+      })
+
+      if (!metricsResponse.ok) {
+        throw new Error(`HTTP error! status: ${metricsResponse.status}`)
+      }
+
+      const metricsData = await metricsResponse.json()
+      this.addLog(`✓ Metrics sent to backend: ${JSON.stringify(metricsData)}`)
+    } catch (error) {
+      console.error('Error sending metrics to backend:', error)
+      this.addLog(`⚠ Failed to send metrics to backend: ${error.message}`)
+    }
 
     if (faceCount > 0) {
       this.verificationStatus.classList.add("active")
