@@ -1151,164 +1151,10 @@
             });
         });
 
-        // Mock flight data
-        const mockFlights = [
-            {
-                id: 1,
-                airline: "Eco Air",
-                flightNumber: "EA2341",
-                departure: "08:30",
-                departureCity: "New York (JFK)",
-                departureCode: "JFK",
-                arrival: "14:45",
-                arrivalCity: "Los Angeles (LAX)",
-                arrivalCode: "LAX",
-                duration: "5h 15m",
-                price: 240,
-                seats: "156 seats",
-                co2: "245 kg",
-                ecoRating: 4.8,
-                type: "direct"
-            },
-            {
-                id: 2,
-                airline: "Green Wings",
-                flightNumber: "GW156",
-                departure: "10:15",
-                departureCity: "New York (JFK)",
-                departureCode: "JFK",
-                arrival: "16:30",
-                arrivalCity: "Los Angeles (LAX)",
-                arrivalCode: "LAX",
-                duration: "6h 15m",
-                price: 195,
-                seats: "200 seats",
-                co2: "198 kg",
-                ecoRating: 4.6,
-                type: "direct"
-            },
-            {
-                id: 3,
-                airline: "Sky Express",
-                flightNumber: "SX789",
-                departure: "12:00",
-                departureCity: "New York (JFK)",
-                departureCode: "JFK",
-                arrival: "18:20",
-                arrivalCity: "Los Angeles (LAX)",
-                arrivalCode: "LAX",
-                duration: "6h 20m",
-                price: 180,
-                seats: "178 seats",
-                co2: "267 kg",
-                ecoRating: 3.9,
-                type: "direct"
-            },
-            {
-                id: 4,
-                airline: "Eco Air",
-                flightNumber: "EA520",
-                departure: "07:45",
-                departureCity: "Chicago (ORD)",
-                departureCode: "ORD",
-                arrival: "09:30",
-                arrivalCity: "New York (JFK)",
-                arrivalCode: "JFK",
-                duration: "2h 45m",
-                price: 120,
-                seats: "145 seats",
-                co2: "85 kg",
-                ecoRating: 4.9,
-                type: "direct"
-            },
-            {
-                id: 5,
-                airline: "Green Wings",
-                flightNumber: "GW302",
-                departure: "14:20",
-                departureCity: "San Francisco (SFO)",
-                departureCode: "SFO",
-                arrival: "22:15",
-                arrivalCity: "New York (JFK)",
-                arrivalCode: "JFK",
-                duration: "5h 55m",
-                price: 220,
-                seats: "167 seats",
-                co2: "213 kg",
-                ecoRating: 4.7,
-                type: "direct"
-            },
-            {
-                id: 6,
-                airline: "Sky Express",
-                flightNumber: "SX445",
-                departure: "06:30",
-                departureCity: "Miami (MIA)",
-                departureCode: "MIA",
-                arrival: "08:45",
-                arrivalCity: "New York (JFK)",
-                arrivalCode: "JFK",
-                duration: "3h 15m",
-                price: 150,
-                seats: "189 seats",
-                co2: "120 kg",
-                ecoRating: 4.2,
-                type: "direct"
-            },
-            {
-                id: 7,
-                airline: "Eco Air",
-                flightNumber: "EA891",
-                departure: "09:00",
-                departureCity: "Boston (BOS)",
-                departureCode: "BOS",
-                arrival: "10:15",
-                arrivalCity: "New York (JFK)",
-                arrivalCode: "JFK",
-                duration: "1h 15m",
-                price: 85,
-                seats: "156 seats",
-                co2: "45 kg",
-                ecoRating: 4.9,
-                type: "direct"
-            },
-            {
-                id: 8,
-                airline: "Green Wings",
-                flightNumber: "GW678",
-                departure: "11:30",
-                departureCity: "Dallas (DFW)",
-                departureCode: "DFW",
-                arrival: "16:45",
-                arrivalCity: "Los Angeles (LAX)",
-                arrivalCode: "LAX",
-                duration: "4h 15m",
-                price: 165,
-                seats: "198 seats",
-                co2: "178 kg",
-                ecoRating: 4.5,
-                type: "direct"
-            },
-            {
-                id: 9,
-                airline: "Sky Express",
-                flightNumber: "SX234",
-                departure: "13:00",
-                departureCity: "Seattle (SEA)",
-                departureCode: "SEA",
-                arrival: "16:30",
-                arrivalCity: "San Francisco (SFO)",
-                arrivalCode: "SFO",
-                duration: "3h 30m",
-                price: 145,
-                seats: "167 seats",
-                co2: "110 kg",
-                ecoRating: 4.6,
-                type: "direct"
-            }
-        ];
+        // Backend API base URL
+        const API_BASE_URL = "http://localhost:5000";
 
-        let currentFlights = [...mockFlights];
+        let currentFlights = [];
 
         // Render flights
         function renderFlights(flights) {
@@ -1443,84 +1289,135 @@
             });
         }
 
-        function getUniqueCities() {
-            const cities = new Set();
-            mockFlights.forEach(flight => {
-                cities.add(flight.departureCity);
-                cities.add(flight.arrivalCity);
-            });
-            return Array.from(cities).sort();
+        // Fetch flights from backend API
+        async function fetchFlights(departure, arrival, date, passengers) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/flights`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        departure,
+                        arrival,
+                        date,
+                        passengers: parseInt(passengers) || 1
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const flights = await response.json();
+                return flights;
+            } catch (error) {
+                console.error('Error fetching flights:', error);
+                return [];
+            }
         }
 
-        function filterFlightsByRoute(departure, arrival) {
-            const cities = getUniqueCities();
-            
-            const departureMatches = fuzzySearch(departure, cities);
-            const arrivalMatches = fuzzySearch(arrival, cities);
+        // Calculate CO2 emissions for a flight
+        async function calculateCO2ForFlight(flight) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/calculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        flight_id: flight.id,
+                        distance: flight.distance || 0,
+                        passengers: flight.passengers || 1,
+                        aircraft_type: flight.aircraft_type || 'medium',
+                        class: flight.class || 'economy'
+                    })
+                });
 
-            console.log("[v0] Departure matches:", departureMatches);
-            console.log("[v0] Arrival matches:", arrivalMatches);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
-            if (departureMatches.length === 0 || arrivalMatches.length === 0) {
-                return { flights: [], suggestions: mockFlights, partial: true };
+                const co2Data = await response.json();
+                return co2Data;
+            } catch (error) {
+                console.error('Error calculating CO2:', error);
+                return { co2: '0 kg', ecoRating: 0 };
             }
+        }
 
-            const filtered = mockFlights.filter(flight => {
-                const deptMatch = departureMatches.some(city => flight.departureCity.toLowerCase().includes(city.toLowerCase()));
-                const arrivMatch = arrivalMatches.some(city => flight.arrivalCity.toLowerCase().includes(city.toLowerCase()));
-                return deptMatch && arrivMatch;
-            });
+        // Enrich flights with CO2 data
+        async function enrichFlightsWithCO2(flights) {
+            const enrichedFlights = await Promise.all(flights.map(async (flight) => {
+                const co2Data = await calculateCO2ForFlight(flight);
+                return {
+                    ...flight,
+                    co2: co2Data.co2 || `${co2Data.co2_kg || 0} kg`,
+                    ecoRating: co2Data.eco_rating || co2Data.ecoRating || 0
+                };
+            }));
+            return enrichedFlights;
+        }
 
-            return { flights: filtered, suggestions: [], partial: false };
+        async function filterFlightsByRoute(departure, arrival, date, passengers) {
+            const flights = await fetchFlights(departure, arrival, date, passengers);
+            const enrichedFlights = await enrichFlightsWithCO2(flights);
+            return { flights: enrichedFlights, suggestions: [], partial: false };
         }
 
         // Search form handler
-        document.getElementById('searchForm').addEventListener('submit', (e) => {
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const departure = document.getElementById('departure').value;
             const arrival = document.getElementById('arrival').value;
+            const date = document.getElementById('date').value;
+            const passengers = document.getElementById('passengers').value;
             
-            const result = filterFlightsByRoute(departure, arrival);
             const flightsGrid = document.getElementById('flightsGrid');
             const notAvailableSection = document.getElementById('notAvailableSection');
             const resultsTitle = document.getElementById('resultsTitle');
+            const searchBtn = document.querySelector('.search-btn');
 
-            flightsGrid.innerHTML = '';
+            // Show loading state
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+            flightsGrid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-icon">⏳</div><h2>Searching flights...</h2><p>Please wait while we find the best options for you</p></div>';
             notAvailableSection.style.display = 'none';
 
-            if (result.flights.length === 0) {
-                resultsTitle.textContent = 'No Direct Flights Available';
-                notAvailableSection.style.display = 'block';
+            try {
+                const result = await filterFlightsByRoute(departure, arrival, date, passengers);
                 
-                const notAvailableMessage = document.getElementById('notAvailableMessage');
-                const suggestedFlightsDiv = document.getElementById('suggestedFlights');
+                flightsGrid.innerHTML = '';
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search Flights';
 
-                if (result.partial) {
-                    notAvailableMessage.textContent = `No flights found from "${departure}" to "${arrival}". Here are some available routes you might be interested in:`;
+                if (result.flights.length === 0) {
+                    resultsTitle.textContent = 'No Direct Flights Available';
+                    notAvailableSection.style.display = 'block';
+                    
+                    const notAvailableMessage = document.getElementById('notAvailableMessage');
+                    const suggestedFlightsDiv = document.getElementById('suggestedFlights');
+
+                    notAvailableMessage.textContent = `No flights found from "${departure}" to "${arrival}". Please try different search criteria.`;
+
+                    suggestedFlightsDiv.innerHTML = '';
                 } else {
-                    notAvailableMessage.textContent = `No direct flights available on this route. Check out these alternative flights:`;
+                    resultsTitle.textContent = `Found ${result.flights.length} Flight${result.flights.length !== 1 ? 's' : ''}`;
+                    currentFlights = result.flights;
+                    
+                    result.flights.forEach((flight, index) => {
+                        const card = createFlightCard(flight);
+                        card.style.opacity = '0';
+                        card.style.animation = `slideUp 0.6s ease-out ${0.2 + index * 0.05}s forwards`;
+                        flightsGrid.appendChild(card);
+                    });
                 }
-
-                // Show suggested flights
-                suggestedFlightsDiv.innerHTML = '<h3 style="color: var(--text-primary); margin-bottom: 1rem; font-size: 1rem;">Recommended Alternatives:</h3>';
-                const suggestedGrid = document.createElement('div');
-                suggestedGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;';
-                
-                result.suggestions.slice(0, 3).forEach(flight => {
-                    suggestedGrid.appendChild(createFlightCard(flight));
-                });
-                
-                suggestedFlightsDiv.appendChild(suggestedGrid);
-            } else {
-                resultsTitle.textContent = `Found ${result.flights.length} Flight${result.flights.length !== 1 ? 's' : ''}`;
-                
-                result.flights.forEach((flight, index) => {
-                    const card = createFlightCard(flight);
-                    card.style.opacity = '0';
-                    card.style.animation = `slideUp 0.6s ease-out ${0.2 + index * 0.05}s forwards`;
-                    flightsGrid.appendChild(card);
-                });
+            } catch (error) {
+                console.error('Error searching flights:', error);
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search Flights';
+                flightsGrid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-icon">⚠️</div><h2>Error</h2><p>Failed to search flights. Please try again later.</p></div>';
             }
         });
 
@@ -1531,18 +1428,17 @@
                 chip.classList.add('active');
                 
                 const filter = chip.dataset.filter;
-                let filtered = mockFlights;
+                let filtered = [...currentFlights];
                 
                 if (filter === 'direct') {
-                    filtered = mockFlights.filter(f => f.type === 'direct');
+                    filtered = currentFlights.filter(f => f.type === 'direct' || !f.type || f.stops === 0);
                 } else if (filter === 'eco') {
-                    filtered = mockFlights.filter(f => f.ecoRating >= 4);
+                    filtered = currentFlights.filter(f => (f.ecoRating || 0) >= 4);
                 } else if (filter === 'price') {
-                    filtered = mockFlights.filter(f => f.price < 200);
+                    filtered = currentFlights.filter(f => (f.price || 0) < 200);
                 }
                 
-                currentFlights = filtered;
-                renderFlights(currentFlights);
+                renderFlights(filtered);
             });
         });
 
@@ -1576,7 +1472,8 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            renderFlights(currentFlights);
+            // Don't render flights on load - wait for user search
+            currentFlights = [];
         });
 
         // --- Backend integration (additive, does not change existing functions) ---

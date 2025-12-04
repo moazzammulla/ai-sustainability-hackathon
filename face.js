@@ -38,6 +38,7 @@ class FaceDetectionSystem {
     this.totalScans = 0
     this.currentFaceCount = 0
     this.uploadedImage = null
+    this.lastMetricsSend = null
 
     this.init()
   }
@@ -123,7 +124,7 @@ class FaceDetectionSystem {
     detect()
   }
 
-  onFaceDetectionResults(results) {
+  async onFaceDetectionResults(results) {
     this.canvasElement.width = this.webcamElement.videoWidth
     this.canvasElement.height = this.webcamElement.videoHeight
 
@@ -134,12 +135,61 @@ class FaceDetectionSystem {
     if (results.detections.length > 0) {
       this.currentFaceCount = results.detections.length
       this.drawFaceDetections(results.detections)
+      const confidence = (results.detections[0].score[0] * 100).toFixed(2)
       this.addLog(
-        `Detected ${this.currentFaceCount} face(s) - Confidence: ${(results.detections[0].score[0] * 100).toFixed(2)}%`,
+        `Detected ${this.currentFaceCount} face(s) - Confidence: ${confidence}%`,
       )
 
       // Update stats
       this.faceCount.textContent = this.currentFaceCount
+
+      // Get metrics from backend (throttled to avoid too many requests)
+      if (!this.lastMetricsSend || Date.now() - this.lastMetricsSend > 2000) {
+        try {
+          const metricsResponse = await fetch(`${BACKEND_BASE_URL}/ai/metrics`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              numFaces: this.currentFaceCount
+            })
+          })
+
+          if (metricsResponse.ok) {
+            const metricsData = await metricsResponse.json()
+            
+            // Update UI with backend metrics instead of browser detection
+            this.faceCount.textContent = metricsData.num_faces || this.currentFaceCount
+            
+            // Update AI eco metrics
+            const densityLabelEl = document.getElementById("aiDensityLabel")
+            const co2SavedEl = document.getElementById("aiCo2Saved")
+            const walkTimeEl = document.getElementById("aiWalkTime")
+            const energySavedEl = document.getElementById("aiEnergySaved")
+
+            if (densityLabelEl && typeof metricsData.density_label === "string") {
+              densityLabelEl.textContent = metricsData.density_label
+            }
+
+            if (co2SavedEl && typeof metricsData.co2_saved_readable === "string") {
+              co2SavedEl.textContent = `CO₂ Saved (estimated): ${metricsData.co2_saved_readable}`
+            }
+
+            if (walkTimeEl && typeof metricsData.walk_time === "string") {
+              walkTimeEl.textContent = `Equivalent walking time: ${metricsData.walk_time}`
+            }
+
+            if (energySavedEl && typeof metricsData.energy_saved === "number") {
+              energySavedEl.textContent = `Estimated energy saved: ${metricsData.energy_saved.toFixed(2)}`
+            }
+            
+            this.lastMetricsSend = Date.now()
+          }
+        } catch (error) {
+          console.error('Error getting webcam metrics from backend:', error)
+        }
+      }
     } else {
       this.currentFaceCount = 0
       this.faceCount.textContent = "0"
@@ -270,31 +320,84 @@ class FaceDetectionSystem {
     this.detectBtn.disabled = false
   }
 
-  displayDetectionResults(results) {
+  async displayDetectionResults(results) {
     const faceCount = results.detections.length
-    const confidence = faceCount > 0 ? (results.detections[0].score[0] * 100).toFixed(2) : 0
-    const quality = this.getQualityLabel(confidence)
-
-    // Update results
-    this.resultFaces.textContent = faceCount
-    this.resultConfidence.textContent = `${confidence}%`
-    this.resultQuality.textContent = quality
 
     // Show results section
     this.resultsSection.classList.add("active")
 
-    if (faceCount > 0) {
-      this.verificationStatus.classList.add("active")
-      this.addLog(`✓ Face verified! Found ${faceCount} face(s) with ${confidence}% confidence`)
+    // Get metrics from backend instead of using browser-only detection
+    try {
+      const metricsResponse = await fetch(`${BACKEND_BASE_URL}/ai/metrics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          numFaces: faceCount
+        })
+      })
 
-      if (confidence >= 80) {
-        this.verificationMessage.textContent = `Your face has been detected and verified with ${confidence}% confidence. You are now identified in the system.`
-      } else if (confidence >= 60) {
-        this.verificationMessage.textContent = `Face detected with ${confidence}% confidence. Please ensure better lighting for optimal verification.`
+      if (!metricsResponse.ok) {
+        throw new Error(`HTTP error! status: ${metricsResponse.status}`)
       }
-    } else {
-      this.verificationStatus.classList.remove("active")
-      this.addLog("⚠ No face detected in image. Please try another image.")
+
+      const metricsData = await metricsResponse.json()
+      
+      // Update results with backend data instead of browser detection
+      const backendFaceCount = metricsData.num_faces || faceCount
+      const densityIndex = (metricsData.density_index || 0) * 100
+      const densityLabel = metricsData.density_label || "Unknown"
+      
+      this.resultFaces.textContent = backendFaceCount
+      this.resultConfidence.textContent = `${densityIndex.toFixed(0)}%`
+      this.resultQuality.textContent = densityLabel
+
+      // Update AI eco metrics section
+      const densityLabelEl = document.getElementById("aiDensityLabel")
+      const co2SavedEl = document.getElementById("aiCo2Saved")
+      const walkTimeEl = document.getElementById("aiWalkTime")
+      const energySavedEl = document.getElementById("aiEnergySaved")
+
+      if (densityLabelEl && typeof metricsData.density_label === "string") {
+        densityLabelEl.textContent = metricsData.density_label
+      }
+
+      if (co2SavedEl && typeof metricsData.co2_saved_readable === "string") {
+        co2SavedEl.textContent = `CO₂ Saved (estimated): ${metricsData.co2_saved_readable}`
+      }
+
+      if (walkTimeEl && typeof metricsData.walk_time === "string") {
+        walkTimeEl.textContent = `Equivalent walking time: ${metricsData.walk_time}`
+      }
+
+      if (energySavedEl && typeof metricsData.energy_saved === "number") {
+        energySavedEl.textContent = `Estimated energy saved: ${metricsData.energy_saved.toFixed(2)}`
+      }
+
+      this.addLog(`✓ Backend metrics received: ${JSON.stringify(metricsData)}`)
+
+      if (backendFaceCount > 0) {
+        this.verificationStatus.classList.add("active")
+        this.addLog(`✓ Face verified! Found ${backendFaceCount} face(s) with ${densityLabel} density`)
+
+        if (densityIndex >= 50) {
+          this.verificationMessage.textContent = `Your face has been detected and verified. Crowd density: ${densityLabel}. You are now identified in the system.`
+        } else {
+          this.verificationMessage.textContent = `Face detected. Crowd density: ${densityLabel}. Please ensure better lighting for optimal verification.`
+        }
+      } else {
+        this.verificationStatus.classList.remove("active")
+        this.addLog("⚠ No face detected in image. Please try another image.")
+      }
+    } catch (error) {
+      console.error('Error getting metrics from backend:', error)
+      this.addLog(`⚠ Failed to get metrics from backend: ${error.message}`)
+      
+      // Fallback to browser detection if backend fails
+      this.resultFaces.textContent = faceCount
+      this.resultConfidence.textContent = faceCount > 0 ? "N/A" : "0%"
+      this.resultQuality.textContent = "Backend unavailable"
     }
 
     // Draw detection on preview
@@ -407,7 +510,7 @@ async function sendMetricsToBackend(numFaces) {
     }
 
     if (energySavedEl && typeof data.energy_saved === "number") {
-      energySavedEl.textContent = `Estimated energy saved: ${data.energy_saved}`
+      energySavedEl.textContent = `Estimated energy saved: ${data.energy_saved.toFixed(2)}`
     }
   } catch (error) {
     console.error("Failed to fetch AI metrics from backend", error)
