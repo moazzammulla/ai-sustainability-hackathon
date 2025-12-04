@@ -40,6 +40,10 @@ class FaceDetectionSystem {
     this.uploadedImage = null
     this.lastMetricsSend = null
 
+    // Face hover state for cursor tracking
+    this.lastDetections = []
+    this.hoveredFaceIndex = null
+
     this.init()
   }
 
@@ -69,6 +73,14 @@ class FaceDetectionSystem {
     this.uploadBox.addEventListener("dragover", (e) => this.handleDragOver(e))
     this.uploadBox.addEventListener("drop", (e) => this.handleDrop(e))
     this.imageInput.addEventListener("change", (e) => this.handleImageSelect(e))
+
+    // Cursor tracking over canvas (for face hover)
+    this.canvasElement.addEventListener("mousemove", (e) =>
+      this.handleCanvasMouseMove(e),
+    )
+    this.canvasElement.addEventListener("mouseleave", () =>
+      this.handleCanvasMouseLeave(),
+    )
 
     this.addLog("System initialized successfully")
   }
@@ -131,6 +143,8 @@ class FaceDetectionSystem {
     // Clear canvas
     this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height)
     this.canvasCtx.drawImage(this.webcamElement, 0, 0, this.canvasElement.width, this.canvasElement.height)
+
+    this.lastDetections = results.detections || []
 
     if (results.detections.length > 0) {
       this.currentFaceCount = results.detections.length
@@ -197,7 +211,7 @@ class FaceDetectionSystem {
   }
 
   drawFaceDetections(detections) {
-    detections.forEach((detection) => {
+    detections.forEach((detection, index) => {
       const keypoints = detection.keypoints
       const score = detection.score[0]
 
@@ -208,9 +222,14 @@ class FaceDetectionSystem {
       const width = locationData.relative_bounding_box.width * this.canvasElement.width
       const height = locationData.relative_bounding_box.height * this.canvasElement.height
 
-      // Draw bounding box
-      this.canvasCtx.strokeStyle = `rgba(0, 212, 255, 0.8)`
-      this.canvasCtx.lineWidth = 3
+      // Draw bounding box (highlight if hovered)
+      if (this.hoveredFaceIndex === index) {
+        this.canvasCtx.strokeStyle = "rgba(255, 255, 0, 0.95)"
+        this.canvasCtx.lineWidth = 4
+      } else {
+        this.canvasCtx.strokeStyle = "rgba(0, 212, 255, 0.8)"
+        this.canvasCtx.lineWidth = 3
+      }
       this.canvasCtx.strokeRect(startX, startY, width, height)
 
       // Draw keypoints
@@ -229,6 +248,60 @@ class FaceDetectionSystem {
       this.canvasCtx.font = "bold 14px Arial"
       this.canvasCtx.fillText(`Confidence: ${(score * 100).toFixed(2)}%`, startX, startY - 10)
     })
+  }
+
+  handleCanvasMouseMove(event) {
+    if (!this.lastDetections || this.lastDetections.length === 0) return
+
+    const rect = this.canvasElement.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+
+    let hoveredIndex = null
+
+    this.lastDetections.forEach((detection, index) => {
+      const locationData = detection.locationData
+      const startX = locationData.relative_bounding_box.xmin * this.canvasElement.width
+      const startY = locationData.relative_bounding_box.ymin * this.canvasElement.height
+      const width = locationData.relative_bounding_box.width * this.canvasElement.width
+      const height = locationData.relative_bounding_box.height * this.canvasElement.height
+
+      if (x >= startX && x <= startX + width && y >= startY && y <= startY + height) {
+        hoveredIndex = index
+      }
+    })
+
+    if (hoveredIndex !== this.hoveredFaceIndex) {
+      this.hoveredFaceIndex = hoveredIndex
+
+      // Redraw webcam frame with updated hover highlight
+      this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height)
+      this.canvasCtx.drawImage(this.webcamElement, 0, 0, this.canvasElement.width, this.canvasElement.height)
+      this.drawFaceDetections(this.lastDetections)
+
+      if (hoveredIndex !== null) {
+        const response = {
+          status: "success",
+          name: `detected_person_${hoveredIndex + 1}`,
+        }
+
+        // Log and emit a custom event so other frontend code can consume the JSON
+        this.addLog(`Face hover JSON: ${JSON.stringify(response)}`)
+        window.dispatchEvent(
+          new CustomEvent("faceDetectionResponse", { detail: response }),
+        )
+      }
+    }
+  }
+
+  handleCanvasMouseLeave() {
+    this.hoveredFaceIndex = null
+    if (!this.lastDetections || this.lastDetections.length === 0) return
+
+    // Clear hover highlight but keep last frame and rectangles
+    this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height)
+    this.canvasCtx.drawImage(this.webcamElement, 0, 0, this.canvasElement.width, this.canvasElement.height)
+    this.drawFaceDetections(this.lastDetections)
   }
 
   stopWebcam() {
