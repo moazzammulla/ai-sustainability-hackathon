@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Search - Eco Passenger Flow Optimization System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #00d4ff;
+            --secondary: #2b54f6;
+            --primary-dark: #0090c7;
+            --success: #35d7ff;
+            --accent: #35d7ff;
+            --bg-dark: #02070f;
+            --bg-darker: #000000;
+            --bg-card: rgba(0, 12, 24, 0.7);
+            --border: rgba(255, 0, 251, 0.25);
+            --text-primary: #ffffff;
+            --text-secondary: #d0f0ff;
+            --text-tertiary: #8fb2d5;
+        }
+        body {
+            background: linear-gradient(180deg,#000000 0%,#000000 40%,#000000 100%);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        nav { background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-bottom: 1px solid transparent; border-image: linear-gradient(to right, #00d4ff) 1; padding: 0; position: sticky; top: 0; z-index: 1000; }
+        .nav-container { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; height: 70px; }
+        .nav-brand { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; letter-spacing: -0.5px; }
+        .nav-links { display: flex; gap: 2.5rem; list-style: none; align-items: center; }
+        .nav-links a { color: white; text-decoration: none; font-weight: 500; font-size: 0.95rem; padding: 0.5rem 0; border-bottom: 2px solid transparent; transition: all 0.3s ease; position: relative; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--accent); transition: width 0.3s ease; }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-links a:hover { color: var(--accent); }
+        .nav-links a.active { color: var(--accent); }
+        .hamburger { display: none; flex-direction: column; cursor: pointer; gap: 5px; background: none; border: none; }
+        .hamburger span { width: 25px; height: 3px; background: var(--primary); border-radius: 2px; transition: all 0.3s ease; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+        .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; }
+        .header { margin-bottom: 2rem; animation: slideInDown 0.6s ease; }
+        .header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary); letter-spacing: -1px; }
+        .header p { color: var(--text-tertiary); font-size: 1.1rem; font-weight: 400; }
+        .search-section { background: linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(30,41,59,0.4) 100%); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; margin-bottom: 2rem; animation: slideUp 0.6s ease-out 0.1s forwards; opacity: 0; }
+        .search-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: flex-end; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select { background: rgba(15,23,42,0.6); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: all 0.3s ease; cursor: pointer; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); background: rgba(15,23,42,0.8); box-shadow: 0 0 12px rgba(0,212,255,0.2); }
+        .search-btn { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border: none; border-radius: 8px; padding: 0.75rem 2rem; color: var(--bg-darker); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; }
+        .search-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,212,255,0.3); }
+        .filters-section { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; animation: slideUp 0.6s ease-out 0.15s forwards; opacity: 0; }
+        .filter-chip { background: rgba(0,212,255,0.15); border: 1px solid rgba(0,212,255,0.3); border-radius: 20px; padding: 0.5rem 1rem; color: var(--primary); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .filter-chip:hover { background: rgba(0,212,255,0.25); border-color: var(--primary); }
+        .filter-chip.active { background: var(--primary); color: var(--bg-darker); border-color: var(--primary); }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; animation: slideUp 0.6s ease-out 0.2s forwards; opacity: 0; }
+        .results-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+        .sort-container { display: flex; gap: 0.75rem; align-items: center; }
+        .sort-container label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+        .sort-container select { background: rgba(0,212,255,0.15); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; color: var(--text-primary); font-size: 0.85rem; cursor: pointer; font-family: 'Inter', sans-serif; }
+        .flights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
+        .flight-card { background: linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(30,41,59,0.4) 100%); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; overflow: hidden; animation: slideUp 0.6s ease-out forwards; opacity: 0; }
+        .flight-card:hover { transform: translateY(-8px) scale(1.02); background: linear-gradient(135deg, rgba(30,41,59,1) 0%, rgba(30,41,59,0.6) 100%); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,212,255,0.15); }
+        .flight-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(51,65,85,0.5); }
+        .flight-airline { display: flex; align-items: center; gap: 0.5rem; }
+        .airline-badge { background: rgba(0,212,255,0.15); border-radius: 6px; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--primary); text-transform: uppercase; }
+        .flight-price { font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .flight-times { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; margin-bottom: 1.5rem; }
+        .time-block { text-align: center; }
+        .time { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
+        .time-label { font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; margin-top: 0.25rem; letter-spacing: 0.5px; }
+        .flight-duration { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+        .duration-line { width: 100%; height: 2px; background: linear-gradient(90deg, var(--primary) 0%, transparent 100%); }
+        .duration-text { font-size: 0.75rem; color: var(--text-tertiary); font-weight: 500; }
+        .flight-details { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .detail-item { background: rgba(15,23,42,0.5); border-radius: 8px; padding: 0.75rem; border: 1px solid rgba(51,65,85,0.3); }
+        .detail-label { font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 0.25rem; }
+        .detail-value { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; }
+        .eco-badge { background: rgba(6,185,129,0.15); border: 1px solid rgba(6,185,129,0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .eco-badge-icon { font-size: 1.25rem; }
+        .eco-info { font-size: 0.85rem; color: var(--success); font-weight: 600; }
+        .eco-value { display: block; font-size: 1rem; font-weight: 700; color: var(--success); line-height: 1.2; }
+        .flight-actions { display: flex; gap: 0.75rem; }
+        .btn-select { flex: 1; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border: none; border-radius: 8px; padding: 0.75rem; color: var(--bg-darker); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-select:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,212,255,0.3); }
+        .btn-details { background: rgba(0,212,255,0.15); border: 1px solid rgba(0,212,255,0.3); border-radius: 8px; padding: 0.75rem 1rem; color: var(--primary); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; }
+        .btn-details:hover { background: rgba(0,212,255,0.25); border-color: var(--primary); }
+        /* Modal */
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; align-items: center; justify-content: center; z-index: 999;
+        }
+        .modal {
+            background: rgba(17, 24, 39, 0.98);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            width: 90%; max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        .modal h3 { margin-bottom: 0.75rem; }
+        .modal p { margin: 0.25rem 0; color: var(--text-secondary); }
+        .modal .close-btn {
+            margin-top: 1rem;
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--bg-darker);
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .empty-state { text-align: center; padding: 4rem 2rem; animation: slideUp 0.6s ease-out 0.2s forwards; opacity: 0; }
+        .empty-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.5; }
+        .empty-state h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary); }
+        .empty-state p { color: var(--text-tertiary); margin-bottom: 1.5rem; }
+        @keyframes slideInDown { from {opacity:0;transform:translateY(-20px);} to {opacity:1;transform:translateY(0);} }
+        @keyframes slideUp { from {opacity:0;transform:translateY(20px);} to {opacity:1;transform:translateY(0);} }
+        @media (max-width: 1024px) { .flights-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } }
+        @media (max-width: 768px) {
+            .hamburger { display: flex; }
+            .nav-links { position: absolute; top: 55px; left: 0; right:0; height: 125px; flex-direction: column; background: rgba(15,23,42,0.98); border-bottom: 1px solid var(--border); gap:0; max-height:0; overflow:hidden; transition:max-height 0.3s ease; }
+            .nav-links.active { max-height:300px; }
+            .nav-links a { padding: 0rem 2rem; font-size: 0.95rem; border-bottom:none; border-left:3px solid transparent; }
+            .nav-links a:hover, .nav-links a.active { border-left-color: var(--primary); }
+            .nav-container { padding: 0 1rem; height: 60px; }
+            .nav-brand { font-size: 1.25rem; }
+            .header h1 { font-size: 1.5rem; margin-bottom:0.25rem; }
+            .header p { font-size: 0.9rem; }
+            .container { padding: 1rem 0.75rem; }
+            .search-section { padding: 1.5rem 1rem; border-radius: 12px; }
+            .search-form { grid-template-columns: 1fr; gap:1rem; }
+            .filters-section { gap:0.75rem; margin-bottom:1.5rem; }
+            .results-header { flex-direction: column; align-items: flex-start; gap:0.75rem; }
+            .flights-grid { grid-template-columns: 1fr; gap:1rem; }
+            .flight-card { padding: 1.25rem; border-radius: 12px; }
+        }
+        @media (max-width: 480px) {
+            .nav-container { height:55px; padding:0 0.75rem; }
+            .nav-brand { font-size:1.1rem; }
+            .header h1 { font-size:1.35rem; }
+            .header p { font-size:0.8rem; }
+            .container { padding:0.75rem 0.5rem; }
+            .search-section { padding:1.25rem 0.75rem; }
+            .flight-card { padding:1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">✈️ Eco Flow</a>
+            <button class="hamburger" id="hamburger-menu"><span></span><span></span><span></span></button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="flight.html" class="active">Flight Search</a></li>
+                <li><a href="eco.html">Eco Tips & CO₂</a></li>
+                <li><a href="face.html">Face Detection</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>✈️ Find Your Eco-Friendly Flight</h1>
+            <p>Search for flights with real-time CO₂ emissions and sustainability ratings</p>
+        </div>
+
+        <div class="search-section">
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="departure">From</label>
+                    <input type="text" id="departure" placeholder="Departure city" required>
+                </div>
+                <div class="form-group">
+                    <label for="arrival">To</label>
+                    <input type="text" id="arrival" placeholder="Arrival city" required>
+                </div>
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="passengers">Passengers</label>
+                    <select id="passengers">
+                        <option value="1">1 Passenger</option>
+                        <option value="2">2 Passengers</option>
+                        <option value="3">3 Passengers</option>
+                        <option value="4">4+ Passengers</option>
+                    </select>
+                </div>
+                <button type="submit" class="search-btn">Search Flights</button>
+            </form>
+        </div>
+
+        <div class="filters-section">
+            <div class="filter-chip active" data-filter="all">All Airlines</div>
+            <div class="filter-chip" data-filter="direct">Direct Flights</div>
+            <div class="filter-chip" data-filter="eco">Eco-Rated ⭐⭐+</div>
+            <div class="filter-chip" data-filter="price">Budget Friendly</div>
+        </div>
+
+        <div class="results-header">
+            <h2 id="resultsTitle">Available Flights</h2>
+            <div class="sort-container">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy">
+                    <option value="price-low">Price (Low to High)</option>
+                    <option value="price-high">Price (High to Low)</option>
+                    <option value="departure">Departure Time</option>
+                    <option value="eco">Eco Rating</option>
+                    <option value="duration">Duration</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flights-grid" id="flightsGrid"></div>
+
+        <div id="notAvailableSection" style="display: none;">
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h2>No Flights Found</h2>
+                <p id="notAvailableMessage">We couldn't find any flights for this route.</p>
+                <div id="suggestedFlights" style="margin-top: 2rem; text-align: left;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="flightModal">
+        <div class="modal">
+            <h3 id="modalTitle">Flight Details</h3>
+            <p id="modalRoute"></p>
+            <p id="modalTime"></p>
+            <p id="modalDuration"></p>
+            <p id="modalSeats"></p>
+            <p id="modalEco"></p>
+            <p id="modalPrice"></p>
+            <button class="close-btn" id="modalClose">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const hamburgerMenu = document.getElementById('hamburger-menu');
+        const navLinks = document.getElementById('nav-links');
+        hamburgerMenu.addEventListener('click', () => {
+            hamburgerMenu.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburgerMenu.classList.remove('active');
+                navLinks.classList.remove('active');
+            });
+        });
+
+        const api = {
+            async fetchFlights({ from = '', to = '' } = {}) {
+                const params = new URLSearchParams();
+                if (from) params.append('from', from);
+                if (to) params.append('to', to);
+                const res = await fetch(`/api/flights?${params.toString()}`);
+                if (!res.ok) throw new Error('Failed to load flights');
+                return res.json();
+            },
+            async incrementCounter(key, amount = 1) {
+                try {
+                    await fetch(`/api/counters/${key}/increment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount }),
+                    });
+                } catch (err) {
+                    console.error('Failed to update counter', err);
+                }
+            },
+        };
+
+        let allFlights = [];
+        let currentFlights = [];
+
+        function renderFlights(flights) {
+            const grid = document.getElementById('flightsGrid');
+            if (!flights.length) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">🔍</div>
+                        <h2>No Flights Found</h2>
+                        <p>Try adjusting your search criteria or dates</p>
+                    </div>`;
+                return;
+            }
+            grid.innerHTML = flights.map(flight => `
+                <div class="flight-card" data-flight-id="${flight.id}">
+                    <div class="flight-header">
+                        <div class="flight-airline">
+                            <strong>${flight.airline}</strong>
+                            <span class="airline-badge">${flight.flightNumber}</span>
+                        </div>
+                        <div class="flight-price">$${flight.price}</div>
+                    </div>
+                    <div class="flight-times">
+                        <div class="time-block">
+                            <div class="time">${flight.departure}</div>
+                            <div class="time-label">${flight.departureCity}</div>
+                        </div>
+                        <div class="flight-duration">
+                            <div class="duration-line"></div>
+                            <div class="duration-text">${flight.duration}</div>
+                        </div>
+                        <div class="time-block">
+                            <div class="time">${flight.arrival}</div>
+                            <div class="time-label">${flight.arrivalCity}</div>
+                        </div>
+                    </div>
+                    <div class="eco-badge">
+                        <div class="eco-badge-icon">🌱</div>
+                        <div class="eco-info">
+                            CO₂ Emissions: <span class="eco-value">${flight.co2}</span>
+                            Eco Rating: ⭐ ${flight.ecoRating}
+                        </div>
+                    </div>
+                    <div class="flight-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Seats Available</div>
+                            <div class="detail-value">${flight.seats}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Flight Type</div>
+                            <div class="detail-value">${flight.type === 'direct' ? 'Direct' : '1 Stop'}</div>
+                        </div>
+                    </div>
+                    <div class="flight-actions">
+                        <button class="btn-select">Select Flight</button>
+                        <button class="btn-details" data-flight-id="${flight.id}">Details</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Attach detail handlers
+            document.querySelectorAll('.btn-details').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-flight-id');
+                    const flight = currentFlights.find(f => String(f.id) === String(id));
+                    if (!flight) return;
+                    showModal(flight);
+                });
+            });
+        }
+
+        function createFlightCard(flight) {
+            const card = document.createElement('div');
+            card.className = 'flight-card';
+            card.innerHTML = `
+                <div class="flight-header">
+                    <div class="flight-airline">
+                        <strong>${flight.airline}</strong>
+                        <span class="airline-badge">${flight.flightNumber}</span>
+                    </div>
+                    <div class="flight-price">$${flight.price}</div>
+                </div>
+                <div class="flight-times">
+                    <div class="time-block">
+                        <div class="time">${flight.departure}</div>
+                        <div class="time-label">${flight.departureCity}</div>
+                    </div>
+                    <div class="flight-duration">
+                        <div class="duration-line"></div>
+                        <div class="duration-text">${flight.duration}</div>
+                    </div>
+                    <div class="time-block">
+                        <div class="time">${flight.arrival}</div>
+                        <div class="time-label">${flight.arrivalCity}</div>
+                    </div>
+                </div>
+                <div class="eco-badge">
+                    <div class="eco-badge-icon">🌱</div>
+                    <div class="eco-info">
+                        CO₂ Emissions: <span class="eco-value">${flight.co2}</span>
+                        Eco Rating: ⭐ ${flight.ecoRating}
+                    </div>
+                </div>
+                <div class="flight-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Seats Available</div>
+                        <div class="detail-value">${flight.seats}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Flight Type</div>
+                        <div class="detail-value">${flight.type === 'direct' ? 'Direct' : '1 Stop'}</div>
+                    </div>
+                </div>
+                <div class="flight-actions">
+                    <button class="btn-select">Select Flight</button>
+                    <button class="btn-details">Details</button>
+                </div>
+            `;
+            // attach detail handler
+            card.querySelector('.btn-details').addEventListener('click', () => showModal(flight));
+            return card;
+        }
+
+        function showModal(flight) {
+            const info = [
+                `Airline: ${flight.airline}`,
+                `Flight: ${flight.flightNumber}`,
+                `From: ${flight.departureCity} at ${flight.departure}`,
+                `To: ${flight.arrivalCity} at ${flight.arrival}`,
+                `Duration: ${flight.duration}`,
+                `Type: ${flight.type === 'direct' ? 'Direct' : '1 Stop'}`,
+                `Seats: ${flight.seats}`,
+                `Price: $${flight.price}`,
+                `CO₂: ${flight.co2}`,
+                `Eco Rating: ${flight.ecoRating}★`
+            ].join('\n');
+            alert(info);
+        }
+
+        function sortFlights(flights, sortType) {
+            const sorted = [...flights];
+            if (sortType === 'price-low') sorted.sort((a, b) => a.price - b.price);
+            else if (sortType === 'price-high') sorted.sort((a, b) => b.price - a.price);
+            else if (sortType === 'eco') sorted.sort((a, b) => b.ecoRating - a.ecoRating);
+            else if (sortType === 'departure') sorted.sort((a, b) => a.departure.localeCompare(b.departure));
+            else if (sortType === 'duration') {
+                const toMinutes = (durationStr = '') => {
+                    const parts = durationStr.match(/(\d+)h\s*(\d+)?m?/);
+                    if (!parts) return 0;
+                    const hours = Number.parseInt(parts[1], 10) || 0;
+                    const minutes = Number.parseInt(parts[2], 10) || 0;
+                    return hours * 60 + minutes;
+                };
+                sorted.sort((a, b) => toMinutes(a.duration) - toMinutes(b.duration));
+            }
+            return sorted;
+        }
+
+        function applyFilter(filter) {
+            if (filter === 'direct') return allFlights.filter(f => f.type === 'direct');
+            if (filter === 'eco') return allFlights.filter(f => f.ecoRating >= 4);
+            if (filter === 'price') return allFlights.filter(f => f.price < 200);
+            return [...allFlights];
+        }
+
+        async function loadFlights(from = '', to = '') {
+            const resultsTitle = document.getElementById('resultsTitle');
+            const notAvailableSection = document.getElementById('notAvailableSection');
+            const suggestedFlightsDiv = document.getElementById('suggestedFlights');
+            const notAvailableMessage = document.getElementById('notAvailableMessage');
+
+            notAvailableSection.style.display = 'none';
+            suggestedFlightsDiv.innerHTML = '';
+
+            try {
+                const flights = await api.fetchFlights({ from, to });
+                allFlights = flights;
+                currentFlights = flights;
+                const countLabel = flights.length === 1 ? 'Flight' : 'Flights';
+                resultsTitle.textContent = flights.length ? `Found ${flights.length} ${countLabel}` : 'No Flights Found';
+
+                if (!flights.length) {
+                    notAvailableSection.style.display = 'block';
+                    notAvailableMessage.textContent = 'No flights matched your search. Showing popular options below.';
+                    const suggestedGrid = document.createElement('div');
+                    suggestedGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;';
+                    const fallbackFlights = await api.fetchFlights();
+                    fallbackFlights.slice(0, 3).forEach(f => suggestedGrid.appendChild(createFlightCard(f)));
+                    suggestedFlightsDiv.appendChild(suggestedGrid);
+                }
+
+                renderFlights(currentFlights);
+                api.incrementCounter('flights', Math.max(flights.length, 1));
+            } catch (err) {
+                console.error(err);
+                resultsTitle.textContent = 'Unable to load flights';
+                document.getElementById('flightsGrid').innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">⚠️</div>
+                        <h2>API Error</h2>
+                        <p>Could not reach the backend. Please try again.</p>
+                    </div>`;
+            }
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const from = document.getElementById('departure').value.trim();
+            const to = document.getElementById('arrival').value.trim();
+            loadFlights(from, to);
+        });
+
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentFlights = applyFilter(chip.dataset.filter);
+                const sorted = sortFlights(currentFlights, document.getElementById('sortBy').value);
+                renderFlights(sorted);
+            });
+        });
+
+        document.getElementById('sortBy').addEventListener('change', (e) => {
+            currentFlights = sortFlights(currentFlights, e.target.value);
+            renderFlights(currentFlights);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPage = window.location.pathname.split('/').pop() || 'flight.html';
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === currentPage) link.classList.add('active');
+            });
+            loadFlights();
+        });
+
+        // Modal logic
+        const modal = document.getElementById('flightModal');
+        const modalClose = document.getElementById('modalClose');
+        function showModal(flight) {
+            document.getElementById('modalTitle').textContent = `${flight.airline} ${flight.flightNumber}`;
+            document.getElementById('modalRoute').textContent = `${flight.departureCity} → ${flight.arrivalCity}`;
+            document.getElementById('modalTime').textContent = `Departure: ${flight.departure} • Arrival: ${flight.arrival}`;
+            document.getElementById('modalDuration').textContent = `Duration: ${flight.duration}`;
+            document.getElementById('modalSeats').textContent = `Seats: ${flight.seats}`;
+            document.getElementById('modalEco').textContent = `CO₂: ${flight.co2} • Eco Rating: ${flight.ecoRating} ⭐`;
+            document.getElementById('modalPrice').textContent = `Price: $${flight.price}`;
+            modal.style.display = 'flex';
+        }
+        modalClose.onclick = () => { modal.style.display = 'none'; };
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
+

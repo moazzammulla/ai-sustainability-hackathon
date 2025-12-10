@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Detection - Eco Passenger Flow Optimization System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #00d4ff; --primary-dark: #00a8cc; --secondary: #0099ff;
+            --accent: #ff6b35; --success: #06b981; --bg-dark: #0a0e27;
+            --bg-darker: #050811; --bg-card: #1a1f3a; --border: #2d3561;
+            --text-primary: #f8fafc; --text-secondary: #cbd5e1; --text-tertiary: #94a3b8;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+            color: var(--text-primary); line-height: 1.5; min-height: 100vh;
+        }
+        nav {
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); padding: 0; position: sticky;
+            top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex;
+            justify-content: space-between; align-items: center; padding: 0 2rem; height: 70px;
+        }
+        .nav-brand {
+            font-size: 1.5rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; display: flex; align-items: center; gap: 0.75rem;
+            text-decoration: none; letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; gap: 2.5rem; list-style: none; align-items: center; }
+        .nav-links a {
+            color: var(--text-secondary); text-decoration: none; font-weight: 500;
+            font-size: 0.95rem; padding: 0.5rem 0; border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; position: relative;
+        }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+        .hamburger {
+            display: none; flex-direction: column; cursor: pointer; gap: 5px;
+            background: none; border: none;
+        }
+        .hamburger span {
+            width: 25px; height: 3px; background: var(--primary);
+            border-radius: 2px; transition: all 0.3s ease;
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+        .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; }
+        .header { margin-bottom: 2rem; animation: slideInDown 0.6s ease; }
+        .header h1 {
+            font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;
+            color: var(--text-primary); letter-spacing: -1px;
+        }
+        .header p { color: var(--text-tertiary); font-size: 1.1rem; font-weight: 400; }
+        .face-detection-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;
+            animation: slideUp 0.6s ease-out 0.1s forwards; opacity: 0;
+        }
+        .webcam-section, .upload-section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid var(--border); border-radius: 16px; padding: 2rem;
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+        .section-title {
+            font-size: 1.25rem; font-weight: 700; color: var(--text-primary);
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .section-title i { color: var(--primary); font-size: 1.5rem; }
+        .webcam-container {
+            position: relative; width: 100%; aspect-ratio: 4/3; background: #000;
+            border: 2px solid var(--border); border-radius: 12px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #webcam { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .webcam-placeholder {
+            text-align: center; color: var(--text-tertiary);
+        }
+        .webcam-placeholder i { font-size: 3rem; margin-bottom: 1rem; color: var(--primary); opacity: 0.5; }
+        #canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; display: none; z-index: 10;
+        }
+        .button-group {
+            display: flex; gap: 1rem; flex-wrap: wrap;
+        }
+        .btn {
+            flex: 1; min-width: 120px; padding: 0.875rem 1.5rem; border: none;
+            border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center;
+            justify-content: center; gap: 0.5rem; text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: #000;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+        }
+        .btn-secondary {
+            background: rgba(0, 153, 255, 0.15); color: var(--secondary);
+            border: 1px solid var(--secondary);
+        }
+        .btn-secondary:hover { background: rgba(0, 153, 255, 0.25); }
+        .btn-danger {
+            background: rgba(255, 107, 53, 0.15); color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .btn-danger:hover { background: rgba(255, 107, 53, 0.25); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .upload-box {
+            border: 2px dashed var(--border); border-radius: 16px; padding: 2rem;
+            text-align: center; cursor: pointer; transition: all 0.3s ease;
+        }
+        .upload-box:hover {
+            border-color: var(--primary);
+            background: rgba(30, 41, 59, 0.6);
+        }
+        #imageInput { display: none; }
+        #preview {
+            width: 100%; border-radius: 12px; display: none;
+            border: 1px solid var(--border);
+        }
+        .results-section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid var(--border); border-radius: 16px; padding: 2rem;
+            margin-top: 2rem; animation: slideUp 0.6s ease-out 0.2s forwards;
+            opacity: 0; display: none;
+        }
+        .results-section.active { display: block; }
+        .result-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+        .result-card {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 153, 255, 0.05) 100%);
+            border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 12px; padding: 1.5rem;
+            text-align: center;
+        }
+        .result-label {
+            color: var(--text-tertiary); font-size: 0.85rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.75rem;
+        }
+        .result-value {
+            font-size: 2rem; font-weight: 800; color: var(--text-primary);
+        }
+        .verification-status {
+            background: linear-gradient(135deg, rgba(6, 185, 129, 0.2) 0%, rgba(6, 185, 129, 0.1) 100%);
+            border: 2px solid var(--success); border-radius: 12px; padding: 2rem;
+            text-align: center; display: none; animation: slideUp 0.6s ease-out;
+        }
+        .verification-status.active { display: block; }
+        .verification-icon { font-size: 3rem; color: var(--success); margin-bottom: 1rem; animation: pulse 2s ease-in-out infinite; }
+        .verification-title {
+            font-size: 1.5rem; font-weight: 700; color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+        .verification-message { color: var(--text-secondary); font-size: 0.95rem; }
+        .detection-log {
+            background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(51, 65, 85, 0.3);
+            border-radius: 12px; padding: 1.5rem; max-height: 200px; overflow-y: auto;
+        }
+        .log-entry {
+            font-size: 0.8rem; color: var(--text-tertiary); padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+        }
+        .log-entry:last-child { border-bottom: none; }
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @media (max-width: 1024px) {
+            .face-detection-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .hamburger { display: flex; }
+            .nav-links {
+                position: absolute; top: 55px; left: 0; right: 0; height: 125px;
+                flex-direction: column; background: rgba(15, 23, 42, 0.98);
+                border-bottom: 1px solid var(--border); gap: 0; max-height: 0;
+                overflow: hidden; transition: max-height 0.3s ease;
+            }
+            .nav-links li { padding: 3px; }
+            .nav-links.active { max-height: 300px; }
+            .nav-links a {
+                padding: 1rem 2rem; font-size: 0.95rem; border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+            .nav-links a:hover, .nav-links a.active { border-left-color: var(--primary); }
+            .nav-container { padding: 0 1rem; height: 60px; }
+            .nav-brand { font-size: 1.25rem; }
+            .header h1 { font-size: 1.75rem; }
+            .header p { font-size: 0.95rem; }
+            .container { padding: 1.5rem 1rem; }
+            .face-detection-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+    <div class="nav-container">
+        <a href="index.html" class="nav-brand">✈️ Eco Flow</a>
+        <button class="hamburger" id="hamburger-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <ul class="nav-links" id="nav-links">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="flight.html">Flight Search</a></li>
+            <li><a href="eco.html">Eco Tips & CO₂</a></li>
+            <li><a href="face.html" class="active">Face Detection</a></li>
+        </ul>
+    </div>
+</nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>Face Detection & Verification</h1>
+            <p>Real-time facial recognition system for passenger identification and flow optimization</p>
+        </div>
+
+        <div class="face-detection-grid">
+            <div class="webcam-section">
+                <div class="section-title">
+                    <i class="fas fa-video"></i> Live Webcam
+                </div>
+
+                <div class="webcam-container">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                    <div class="webcam-placeholder">
+                        <i class="fas fa-camera"></i>
+                        <p>Webcam Preview</p>
+                        <small>Enable camera access to start detection</small>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="startWebcamBtn">
+                        <i class="fas fa-play"></i> Start Webcam
+                    </button>
+                    <button class="btn btn-danger" id="stopWebcamBtn" disabled>
+                        <i class="fas fa-stop"></i> Stop Webcam
+                    </button>
+                </div>
+
+                <div>
+                    <div class="section-title" style="font-size: 0.95rem; margin-bottom: 0.75rem;">
+                        <i class="fas fa-list"></i> Detection Log
+                    </div>
+                    <div class="detection-log" id="detectionLog">
+                        <div class="log-entry">Waiting for input...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <div class="section-title">
+                    <i class="fas fa-upload"></i> Upload Image
+                </div>
+
+                <div class="upload-box" id="uploadBox">
+                    <i class="fas fa-image"></i>
+                    <p>Click to upload or drag image here</p>
+                    <div class="hint">PNG, JPG up to 10MB</div>
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*">
+                <img id="preview" alt="Preview">
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="detectBtn" disabled>
+                        <i class="fas fa-search"></i> Detect Face
+                    </button>
+                    <button class="btn btn-secondary" id="clearBtn" disabled>
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+
+                <div style="background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 8px; padding: 1rem;">
+                    <div class="section-title" style="font-size: 1rem; margin-bottom: 0.75rem;">
+                        <i class="fas fa-users"></i> Detection Statistics
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-tertiary); font-size: 0.85rem; margin-bottom: 0.5rem;">Faces Detected</div>
+                            <div id="faceCount" style="font-size: 2rem; font-weight: 800; color: var(--primary);">0</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-tertiary); font-size: 0.85rem; margin-bottom: 0.5rem;">Total Scans</div>
+                            <div id="scanCount" style="font-size: 2rem; font-weight: 800; color: var(--secondary);">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="section-title" style="margin-bottom: 1.5rem;">
+                <i class="fas fa-chart-bar"></i> Detection Results
+            </div>
+
+            <div class="result-grid" id="resultGrid">
+                <div class="result-card">
+                    <div class="result-label">Faces Found</div>
+                    <div class="result-value" id="resultFaces">0</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Confidence Level</div>
+                    <div class="result-value" id="resultConfidence">0%</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Detection Quality</div>
+                    <div class="result-value" id="resultQuality">N/A</div>
+                </div>
+            </div>
+
+            <div class="verification-status" id="verificationStatus">
+                <div class="verification-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="verification-title">Face Verified Successfully</div>
+                <div class="verification-message" id="verificationMessage">
+                    Your face has been detected and verified. You are now identified in the system.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+    <script src="face.js"></script>
+    <script>
+        const hamburgerMenu = document.getElementById('hamburger-menu');
+        const navLinks = document.getElementById('nav-links');
+
+        hamburgerMenu.addEventListener('click', () => {
+            hamburgerMenu.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburgerMenu.classList.remove('active');
+                navLinks.classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>
+

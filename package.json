@@ -1,0 +1,18 @@
+{
+  "name": "ai-sustainability-hackathon",
+  "version": "0.1.0",
+  "description": "Eco Flow web app with face detection, flight search, and sustainability insights backed by an API and SQLite database.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
+

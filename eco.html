@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco Tips & CO₂ - Eco Passenger Flow Optimization System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #00d4ff; --primary-dark: #00a8cc; --secondary: #0099ff;
+            --accent: #ff6b35; --success: #06b981; --bg-dark: #0a0e27;
+            --bg-darker: #050811; --bg-card: #1a1f3a; --border: #2d3561;
+            --text-primary: #f8fafc; --text-secondary: #cbd5e1; --text-tertiary: #94a3b8;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+            color: var(--text-primary); line-height: 1.5; min-height: 100vh;
+        }
+        nav {
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); padding: 0; position: sticky;
+            top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .nav-container {
+            max-width: 1400px; margin: 0 auto; display: flex;
+            justify-content: space-between; align-items: center; padding: 0 2rem; height: 70px;
+        }
+        .nav-brand {
+            font-size: 1.5rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; display: flex; align-items: center; gap: 0.75rem;
+            text-decoration: none; letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; gap: 2.5rem; list-style: none; align-items: center; }
+        .nav-links a {
+            color: var(--text-secondary); text-decoration: none; font-weight: 500;
+            font-size: 0.95rem; padding: 0.5rem 0; border-bottom: 2px solid transparent;
+            transition: all 0.3s ease; position: relative;
+        }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .hamburger {
+            display: none; flex-direction: column; cursor: pointer; gap: 5px;
+            background: none; border: none;
+        }
+        .hamburger span {
+            width: 25px; height: 3px; background: var(--primary);
+            border-radius: 2px; transition: all 0.3s ease;
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+        .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; }
+        .header { margin-bottom: 3rem; animation: slideInDown 0.6s ease; }
+        .header h1 {
+            font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;
+            color: var(--text-primary); letter-spacing: -1px;
+        }
+        .header p { color: var(--text-tertiary); font-size: 1.1rem; font-weight: 400; }
+        .tab-nav {
+            display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border);
+            animation: slideUp 0.6s ease-out 0.1s forwards; opacity: 0;
+        }
+        .tab-btn {
+            background: none; border: none; padding: 1rem 1.5rem; font-size: 0.95rem;
+            font-weight: 600; color: var(--text-secondary); cursor: pointer;
+            transition: all 0.3s ease; border-bottom: 3px solid transparent;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active {
+            display: block; animation: slideUp 0.6s ease-out 0.15s forwards;
+        }
+        .cards-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+        .card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid var(--border); border-radius: 16px; padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative;
+            overflow: hidden; animation: slideUp 0.6s ease-out forwards; opacity: 0;
+        }
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(30, 41, 59, 0.6) 100%);
+            border-color: var(--primary); box-shadow: 0 20px 40px rgba(0, 212, 255, 0.15);
+        }
+        .card-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+        .card-title {
+            font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+        .card-description {
+            color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .calculator-section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid var(--border); border-radius: 16px; padding: 2rem;
+            margin-bottom: 2rem; animation: slideUp 0.6s ease-out 0.1s forwards; opacity: 0;
+        }
+        .calculator-title {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+        .calc-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .calc-input { display: flex; flex-direction: column; gap: 0.5rem; }
+        .calc-input label {
+            font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .calc-input input, .calc-input select {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border);
+            border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-primary);
+            font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: all 0.3s ease;
+        }
+        .calc-input input:focus, .calc-input select:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+        }
+        .calc-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border: none; border-radius: 8px; padding: 0.75rem 2rem; color: var(--bg-darker);
+            font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.3s ease;
+            text-transform: uppercase; letter-spacing: 0.5px; align-self: flex-end;
+        }
+        .calc-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 212, 255, 0.3);
+        }
+        .result-box {
+            background: rgba(6, 185, 129, 0.15); border: 1px solid rgba(6, 185, 129, 0.3);
+            border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; display: none;
+        }
+        .result-box.show {
+            display: block; animation: slideUp 0.4s ease-out;
+        }
+        .result-title {
+            font-size: 1.1rem; font-weight: 700; color: var(--success);
+            margin-bottom: 1rem;
+        }
+        .result-item {
+            display: flex; justify-content: space-between; padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(6, 185, 129, 0.2);
+        }
+        .result-item:last-child { border-bottom: none; }
+        .result-label { color: var(--text-secondary); }
+        .result-value { font-weight: 700; color: var(--success); }
+        .eco-tips-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem; animation: slideUp 0.6s ease-out 0.2s forwards; opacity: 0;
+        }
+        .tip-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid var(--border); border-radius: 16px; padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative;
+            overflow: hidden; cursor: pointer;
+        }
+        .tip-card:hover {
+            transform: translateY(-8px);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(30, 41, 59, 0.6) 100%);
+            border-color: var(--primary); box-shadow: 0 20px 40px rgba(0, 212, 255, 0.15);
+        }
+        .tip-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .tip-title {
+            font-size: 1.25rem; font-weight: 700; color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+        .tip-description {
+            color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .tip-impact {
+            background: rgba(0, 212, 255, 0.1); border-left: 3px solid var(--primary);
+            padding: 1rem; border-radius: 4px; font-size: 0.85rem;
+            color: var(--primary); font-weight: 600;
+        }
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+            .hamburger { display: flex; }
+            .nav-links {
+                position: absolute; top: 55px; left: 0; right: 0; height: 125px;
+                flex-direction: column; background: rgba(15, 23, 42, 0.98);
+                border-bottom: 1px solid var(--border); gap: 0; max-height: 0;
+                overflow: hidden; transition: max-height 0.3s ease;
+            }
+            .nav-links li { padding: 3px; }
+            .nav-links.active { max-height: 300px; }
+            .nav-links a {
+                padding: 0rem 2rem; font-size: 0.95rem; border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+            .nav-links a:hover, .nav-links a.active { border-left-color: var(--primary); }
+            .nav-container { padding: 0 1rem; height: 60px; }
+            .nav-brand { font-size: 1.25rem; }
+            .header h1 { font-size: 1.75rem; }
+            .header p { font-size: 0.95rem; }
+            .container { padding: 1.5rem 1rem; }
+            .tab-nav { gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+            .tab-btn { padding: 0.75rem 1rem; font-size: 0.8rem; white-space: nowrap; }
+            .cards-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">✈️ Eco Flow</a>
+            <button class="hamburger" id="hamburger-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="flight.html">Flight Search</a></li>
+                <li><a href="eco.html" class="active">Eco Tips & CO₂</a></li>
+                <li><a href="face.html">Face Detection</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Eco Tips & CO₂ Emissions</h1>
+            <p>Calculate your carbon footprint and discover sustainable travel practices</p>
+        </div>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="calculator">CO₂ Calculator</button>
+            <button class="tab-btn" data-tab="tips">Eco Tips</button>
+        </div>
+
+        <div id="calculator" class="tab-content active">
+            <div class="calculator-section">
+                <h2 class="calculator-title">Calculate Your Flight Emissions</h2>
+                <div class="calc-grid">
+                    <div class="calc-input">
+                        <label for="distance">Distance (km)</label>
+                        <input type="number" id="distance" placeholder="e.g., 1000" value="1000" min="1">
+                    </div>
+                    <div class="calc-input">
+                        <label for="passengers-calc">Number of Passengers</label>
+                        <input type="number" id="passengers-calc" placeholder="e.g., 1" value="1" min="1">
+                    </div>
+                    <div class="calc-input">
+                        <label for="aircraft">Aircraft Type</label>
+                        <select id="aircraft">
+                            <option value="small">Small Aircraft (< 100 seats)</option>
+                            <option value="medium" selected>Medium Aircraft (100-250 seats)</option>
+                            <option value="large">Large Aircraft (> 250 seats)</option>
+                            <option value="regional">Regional Jet</option>
+                        </select>
+                    </div>
+                    <div class="calc-input">
+                        <label for="class">Travel Class</label>
+                        <select id="class">
+                            <option value="economy" selected>Economy</option>
+                            <option value="business">Business</option>
+                            <option value="first">First Class</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="calc-btn" onclick="calculateCO2()">Calculate Emissions</button>
+            </div>
+
+            <div class="result-box" id="resultBox">
+                <div class="result-title">Your Flight Emissions Breakdown</div>
+                <div class="result-item">
+                    <span class="result-label">CO₂ Total Emissions</span>
+                    <span class="result-value" id="co2-total">0 kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Per Passenger</span>
+                    <span class="result-value" id="co2-per-passenger">0 kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Equivalent Trees Needed</span>
+                    <span class="result-value" id="trees-needed">0 trees/year</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="tips" class="tab-content">
+            <div class="eco-tips-grid">
+                <div class="tip-card">
+                    <div class="tip-icon">✈️</div>
+                    <div class="tip-title">Choose Direct Flights</div>
+                    <div class="tip-description">Direct flights produce less CO₂ per kilometer than connecting flights due to reduced takeoff and landing emissions.</div>
+                    <div class="tip-impact">💡 Saves up to 50% fuel per journey</div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-icon">💼</div>
+                    <div class="tip-title">Fly Economy Class</div>
+                    <div class="tip-description">Economy passengers produce significantly lower emissions per capita compared to business or first-class travelers.</div>
+                    <div class="tip-impact">💡 Reduces emissions by 5x vs business class</div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-icon">🎒</div>
+                    <div class="tip-title">Pack Light</div>
+                    <div class="tip-description">Every extra kilogram of luggage increases fuel consumption. Travel smart with minimal baggage.</div>
+                    <div class="tip-impact">💡 Each kg reduction saves 0.1% fuel</div>
+                </div>
+                <div class="tip-card">
+                    <div class="tip-icon">🚆</div>
+                    <div class="tip-title">Combine with Train Travel</div>
+                    <div class="tip-description">Trains emit 60-90% less CO₂ than flights. Use trains for shorter distances and flights for longer routes.</div>
+                    <div class="tip-impact">💡 Train emits 14g CO₂/km vs 110g for flights</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hamburgerMenu = document.getElementById('hamburger-menu');
+        const navLinks = document.getElementById('nav-links');
+
+        hamburgerMenu.addEventListener('click', () => {
+            hamburgerMenu.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburgerMenu.classList.remove('active');
+                navLinks.classList.remove('active');
+            });
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        function calculateCO2() {
+            const distance = parseFloat(document.getElementById('distance').value) || 0;
+            const passengers = parseFloat(document.getElementById('passengers-calc').value) || 1;
+            const aircraft = document.getElementById('aircraft').value;
+            const travelClass = document.getElementById('class').value;
+
+            let baseFactor = 0.1;
+            if (aircraft === 'small') baseFactor = 0.15;
+            else if (aircraft === 'medium') baseFactor = 0.1;
+            else if (aircraft === 'large') baseFactor = 0.08;
+            else if (aircraft === 'regional') baseFactor = 0.18;
+
+            let classMultiplier = 1;
+            if (travelClass === 'business') classMultiplier = 2.5;
+            else if (travelClass === 'first') classMultiplier = 3.5;
+
+            const totalEmissions = distance * baseFactor * classMultiplier;
+            const perPassenger = totalEmissions / passengers;
+            const treesNeeded = Math.ceil(perPassenger / 20);
+
+            document.getElementById('co2-total').textContent = totalEmissions.toFixed(2) + ' kg';
+            document.getElementById('co2-per-passenger').textContent = perPassenger.toFixed(2) + ' kg';
+            document.getElementById('trees-needed').textContent = treesNeeded + ' trees/year';
+            
+            document.getElementById('resultBox').classList.add('show');
+        }
+    </script>
+</body>
+</html>
+
